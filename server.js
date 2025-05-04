@@ -1,45 +1,33 @@
-// server.js
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+const socketIo = require('socket.io');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
 
-// Serve static files from /public
-app.use(express.static(path.join(__dirname, 'public')));
+// Enable CORS to allow your frontend to connect from Netlify
+app.use(cors({
+  origin: "https://massanger.netlify.app", // Your Netlify frontend URL
+  methods: ["GET", "POST"],
+}));
 
-// Routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/chat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
-});
-
-// Socket.IO logic
+// Handle Socket.IO connections
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('New user connected:', socket.id);
 
-  socket.on('join-room', (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room ${roomId}`);
-  });
+  // Send a welcome message to the client
+  socket.emit('welcome', 'Hello from the server!');
 
-  socket.on('send-message', ({ roomId, message }) => {
-    socket.to(roomId).emit('receive-message', message);
-  });
-
+  // Handle user disconnection
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    console.log('User disconnected:', socket.id);
   });
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Set the port for the server to listen on
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
